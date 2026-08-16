@@ -1,0 +1,522 @@
+openapi: 3.0.3
+info:
+  title: API BS UTP Portal V1
+  description: >
+    Contrato de la API del microservicio `business-core-portal` de UTP+ Parking, dueño
+    de la información institucional del portal: usuarios, roles, campus y ciclos
+    académicos. Este archivo es la fuente de verdad del contrato HTTP: las interfaces
+    del servidor se generan a partir de él en tiempo de build, e implementan esas
+    interfaces `UserController` y `CycleController`. Cualquier cambio en el
+    comportamiento expuesto debe empezar por este contrato.
+  version: 1.0.0
+servers:
+  - url: /utp-portal/v1
+tags:
+  - name: Users
+    description: Consulta de usuarios registrados
+  - name: Cycles
+    description: Consulta del ciclo académico/institucional
+  - name: Campus
+    description: Consulta de los campus de la universidad
+paths:
+  /campus:
+    get:
+      tags: [ Campus ]
+      operationId: getAllCampus
+      summary: Listar los campus de la universidad
+      description: >
+        Devuelve los campus registrados. `business-core-portal` es la única fuente de verdad
+        de la información institucional del campus; los demás microservicios deben consumir
+        este endpoint para resolver su nombre en lugar de replicarlo. Las sedes y su
+        capacidad de estacionamiento no pertenecen a este microservicio, sino a
+        `business-parking-control`.
+      responses:
+        "200":
+          description: Campus registrados
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CampusResponse"
+  /campus/{id}:
+    get:
+      tags: [ Campus ]
+      operationId: getCampusById
+      summary: Obtener un campus por id
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Identificador del campus
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: Campus encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CampusResponse"
+        "404":
+          description: No existe un campus con ese id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiException"
+  /cycles/current:
+    get:
+      tags: [ Cycles ]
+      operationId: getCurrentCycle
+      summary: Obtener el ciclo académico actual
+      description: >
+        Devuelve el ciclo académico vigente. `business-core-portal` es la única fuente de
+        verdad del ciclo actual; los demás microservicios deben consumir este endpoint en
+        lugar de calcularlo o almacenarlo localmente.
+      responses:
+        "200":
+          description: Ciclo actual
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CycleResponse"
+        "404":
+          description: No existe un ciclo activo configurado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiException"
+  /cycles/{id}:
+    get:
+      tags: [ Cycles ]
+      operationId: getCycleById
+      summary: Obtener un ciclo por id
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Identificador del ciclo
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: Ciclo encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CycleResponse"
+        "404":
+          description: No existe un ciclo con ese id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiException"
+  /users:
+    get:
+      tags: [ Users ]
+      operationId: getAllUsers
+      summary: Listar usuarios de forma paginada
+      description: >
+        Devuelve los usuarios en páginas de tamaño configurable, junto con la información
+        de paginación (página actual, tamaño y totales).
+      parameters:
+        - name: page
+          in: query
+          required: false
+          description: Número de página a consultar, empezando en 0
+          schema:
+            type: integer
+            format: int32
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          required: false
+          description: Cantidad de usuarios por página
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        "200":
+          description: Página de usuarios solicitada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserPageResponse"
+    post:
+      tags: [ Users ]
+      operationId: registerUser
+      summary: Registrar un nuevo usuario
+      description: >
+        Crea un usuario a partir de los datos proporcionados. La contraseña se recibe en
+        texto plano y se almacena como un hash seguro; nunca se devuelve en la respuesta.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserRegisterRequest"
+      responses:
+        "201":
+          description: Usuario registrado correctamente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "400":
+          description: Los datos proporcionados no son válidos
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiException"
+        "404":
+          description: No existe un campus con el id indicado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiException"
+        "409":
+          description: Ya existe un usuario con el mismo username, dni o institutionalEmail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiException"
+  /users/{id}:
+    get:
+      tags: [ Users ]
+      operationId: getUserById
+      summary: Obtener un usuario por id
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Identificador del usuario
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: Usuario encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "404":
+          description: No existe un usuario con ese id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiException"
+  /users/{id}/roles/{idRole}:
+    put:
+      tags: [ Users ]
+      operationId: assignRole
+      summary: Asignar un rol a un usuario
+      description: >
+        Asigna el rol indicado al usuario. Operación idempotente: si el usuario ya tiene
+        el rol, no tiene efecto y simplemente devuelve el usuario con su estado actual.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Identificador del usuario
+          schema:
+            type: integer
+            format: int64
+        - name: idRole
+          in: path
+          required: true
+          description: Identificador del rol a asignar
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: Rol asignado correctamente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "404":
+          description: No existe un usuario o un rol con el id indicado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiException"
+    delete:
+      tags: [ Users ]
+      operationId: unassignRole
+      summary: Quitar un rol a un usuario
+      description: >
+        Quita el rol indicado del usuario. Operación idempotente: si el usuario no tenía
+        el rol, no tiene efecto y simplemente devuelve el usuario con su estado actual.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Identificador del usuario
+          schema:
+            type: integer
+            format: int64
+        - name: idRole
+          in: path
+          required: true
+          description: Identificador del rol a quitar
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: Rol removido correctamente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "404":
+          description: No existe un usuario con el id indicado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiException"
+  /users/by-role/{roleName}:
+    get:
+      tags: [ Users ]
+      operationId: getUsersByRole
+      summary: Listar usuarios que tienen un rol determinado
+      description: >
+        Devuelve los usuarios que tienen asignado el rol indicado, opcionalmente
+        filtrados por campus. Pensado para que otros microservicios resuelvan, por
+        ejemplo, qué Personal SAE de un campus puede revisar una solicitud, sin
+        depender de paginar la lista completa de usuarios.
+      parameters:
+        - name: roleName
+          in: path
+          required: true
+          description: Nombre del rol a filtrar (ej. ROLE_SAE)
+          schema:
+            type: string
+        - name: idCampus
+          in: query
+          required: false
+          description: Filtra además por el campus del usuario
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: Usuarios que cumplen el filtro
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/UserResponse"
+  /users/username/{username}:
+    get:
+      tags: [ Users ]
+      operationId: getUserByUsername
+      summary: Obtener un usuario, incluyendo sus credenciales, por nombre de usuario
+      description: Pensado para ser consumido por un servicio de autenticación/gateway.
+      parameters:
+        - name: username
+          in: path
+          required: true
+          description: Nombre de usuario
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Usuario encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserLoginResponse"
+        "404":
+          description: No existe un usuario con ese nombre de usuario
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiException"
+components:
+  schemas:
+    Role:
+      type: object
+      description: Rol asignado a un usuario
+      properties:
+        idRole:
+          type: integer
+          format: int64
+        name:
+          type: string
+    CampusResponse:
+      type: object
+      description: Sede/campus al que pertenece un usuario
+      properties:
+        idCampus:
+          type: integer
+          format: int64
+        nameCampus:
+          type: string
+    CycleResponse:
+      type: object
+      description: Ciclo académico/institucional de la UTP
+      properties:
+        idCycle:
+          type: integer
+          format: int64
+        nameCycle:
+          type: string
+    UserResponse:
+      type: object
+      description: Representación pública de un usuario, sin credenciales
+      properties:
+        idUser:
+          type: integer
+          format: int64
+        username:
+          type: string
+        name:
+          type: string
+        lastname:
+          type: string
+        dni:
+          type: string
+        institutionalEmail:
+          type: string
+          format: email
+        career:
+          type: string
+        actualRegistered:
+          type: boolean
+        roles:
+          type: array
+          items:
+            $ref: "#/components/schemas/Role"
+        campus:
+          $ref: "#/components/schemas/CampusResponse"
+    UserLoginResponse:
+      description: >
+        Representación de un usuario que incluye su contraseña; solo debe usarse para
+        flujos de autenticación.
+      allOf:
+        - $ref: "#/components/schemas/UserResponse"
+        - type: object
+          properties:
+            password:
+              type: string
+    UserRegisterRequest:
+      type: object
+      description: Datos requeridos para registrar un nuevo usuario
+      required:
+        - username
+        - password
+        - name
+        - lastname
+        - dni
+        - institutionalEmail
+        - career
+        - idCampus
+      properties:
+        username:
+          type: string
+          minLength: 1
+          maxLength: 50
+          x-field-extra-annotation: "@NotBlank @Size(max = 50)"
+        password:
+          type: string
+          description: Contraseña en texto plano; el servicio la hashea antes de persistirla
+          minLength: 8
+          maxLength: 72
+          x-field-extra-annotation: "@NotBlank @Size(min = 8, max = 72)"
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          x-field-extra-annotation: "@NotBlank @Size(max = 100)"
+        lastname:
+          type: string
+          minLength: 1
+          maxLength: 100
+          x-field-extra-annotation: "@NotBlank @Size(max = 100)"
+        dni:
+          type: string
+          pattern: "^[0-9]{8}$"
+          x-field-extra-annotation: "@NotBlank @Pattern(regexp = \"^[0-9]{8}$\")"
+        institutionalEmail:
+          type: string
+          format: email
+          maxLength: 150
+          x-field-extra-annotation: "@NotBlank @Email @Size(max = 150)"
+        career:
+          type: string
+          minLength: 1
+          maxLength: 100
+          x-field-extra-annotation: "@NotBlank @Size(max = 100)"
+        idCampus:
+          type: integer
+          format: int64
+          description: Identificador del campus al que pertenece el usuario
+          x-field-extra-annotation: "@NotNull"
+    UserPageResponse:
+      type: object
+      description: Página de usuarios junto con la información de paginación
+      properties:
+        content:
+          type: array
+          items:
+            $ref: "#/components/schemas/UserResponse"
+        page:
+          type: integer
+          format: int32
+          description: Página actual (0-indexada)
+        size:
+          type: integer
+          format: int32
+          description: Cantidad de usuarios por página
+        totalElements:
+          type: integer
+          format: int64
+          description: Cantidad total de usuarios
+        totalPages:
+          type: integer
+          format: int32
+          description: Cantidad total de páginas disponibles
+    ApiException:
+      title: ApiException
+      type: object
+      description: Datos del error de sistema.
+      properties:
+        description:
+          type: string
+          description: Descripción del error de sistema
+          example: El username ya está registrado
+        errorType:
+          type: string
+          description: Tipo de error de sistema
+          example: FUNCTIONAL
+        exceptionDetails:
+          type: array
+          description: Lista de detalles del error
+          items:
+            $ref: "#/components/schemas/ApiExceptionDetail"
+        properties:
+          type: object
+          description: Lista de propiedades especiales.
+    ApiExceptionDetail:
+      title: ApiExceptionDetail
+      type: object
+      description: Datos del error técnico.
+      properties:
+        component:
+          type: string
+          description: Nombre del componente de falla
+          example: business-core-portal
+        description:
+          type: string
+          description: Descripción del detalle
+          example: El campo 'dni' debe tener 8 dígitos
