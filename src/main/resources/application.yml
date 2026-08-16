@@ -1,0 +1,29 @@
+spring:
+  application:
+    name: business-parking-control
+  r2dbc:
+    url: r2dbc:postgresql://localhost:${DB_PORT}/db_utp_parking
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: http://localhost:9000/oauth2/jwks
+
+server:
+  port: 9005
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://localhost:${EUREKA_SERVER_PORT}/eureka/
+  instance:
+    prefer-ip-address: true
+    instanceId: ${spring.cloud.client.hostname}:${spring.application.name}:${random.value}
+
+users-service:
+  base-url: lb://business-core-portal
+
+parking-request-service:
+  base-url: lb://business-parking-request

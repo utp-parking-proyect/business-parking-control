@@ -1,0 +1,15 @@
+# OpenAPI Generator Ignore
+# This file allows you to commit a fully generated API client/server and protect
+# it from being overwritten by the code generator.
+# The pattern is based on .gitignore syntax.
+
+# Ignore all test files
+src/test/
+**/src/test/**
+*Test.java
+*Tests.java
+OpenApiGeneratorApplicationTests.java
+
+# Ignore generated controller (we use AccessControlApiImplements instead)
+target/generated-sources/openapi/src/main/java/com/utp/control/generated/api/ControlApiController.java
+src/main/java/com/utp/control/generated/api/ControlApiController.java
