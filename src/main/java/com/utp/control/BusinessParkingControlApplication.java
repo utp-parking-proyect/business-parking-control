@@ -6,8 +6,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @SpringBootApplication
 public class BusinessParkingControlApplication {
 
-	static void main(String[] args) {
-		SpringApplication.run(BusinessParkingControlApplication.class, args);
-	}
+  public static void main(String[] args) {
+    SpringApplication.run(BusinessParkingControlApplication.class, args);
+  }
 
 }

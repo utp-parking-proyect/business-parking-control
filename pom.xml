@@ -11,8 +11,8 @@
 	<groupId>com.utp</groupId>
 	<artifactId>business-parking-control</artifactId>
 	<version>1.0.0-SNAPSHOT</version>
-	<name/>
-	<description/>
+	<name>business-parking-control</name>
+	<description>business-parking-control</description>
 	<url/>
 	<licenses>
 		<license/>
@@ -164,9 +164,9 @@
 							<generatorName>spring</generatorName>
 							<library>spring-boot</library>
 							<output>${project.build.directory}/generated-sources/openapi</output>
-							<apiPackage>com.utp.vehicles.generated.api</apiPackage>
-							<modelPackage>com.utp.vehicles.generated.model</modelPackage>
-							<invokerPackage>com.utp.vehicles.generated</invokerPackage>
+							<apiPackage>com.utp.control.generated.api</apiPackage>
+							<modelPackage>com.utp.control.generated.model</modelPackage>
+							<invokerPackage>com.utp.control.generated</invokerPackage>
 							<ignoreFileOverride>${project.basedir}/.openapi-generator-ignore</ignoreFileOverride>
 							<configOptions>
 								<dateLibrary>java8</dateLibrary>
@@ -194,7 +194,7 @@
 							<generatorName>spring</generatorName>
 							<library>spring-boot</library>
 							<output>${project.build.directory}/generated-sources/openapi</output>
-							<modelPackage>com.utp.vehicles.generated.client.users.model</modelPackage>
+							<modelPackage>com.utp.control.generated.client.users.model</modelPackage>
 							<generateApis>false</generateApis>
 							<generateModels>true</generateModels>
 							<generateSupportingFiles>false</generateSupportingFiles>
